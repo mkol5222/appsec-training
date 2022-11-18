@@ -59,7 +59,7 @@
     ![](2022-09-13-20-23-59.png)
 
 * APPLICATION: name asset object **ip-iol**
-* define front-end URL (1): **http://ip.iol.cz***
+* define front-end URL (1): **http://ip.iol.cz**
     * we will later point browser on your machine to this application using *hosts* file modification
 * define back-end URL (2): **http://194.228.41.73**
     * we are using HTTP first
