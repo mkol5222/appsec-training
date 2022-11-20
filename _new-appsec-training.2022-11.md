@@ -81,6 +81,216 @@ Notice that screen highlights both AI-based engine and parallel Check Point IPS 
 
 ![](2022-11-20-17-37-34.png)
 
-#### Step 3:
+#### Step 3: Learning engine - indicators
+
+You may specify indicators that are unlikely to be malicious to improve Learning Engine verdicts.
+Source IP address is determined from TCP connection source or from X-Forwarded-For header behind load-balancer or other proxy.
+
+We choose *Source IP address* as there us direct access to Azure VM public IP address and AppSec will learn real source IP from TCP connection.
+
+![](2022-11-20-17-42-09.png)
+
+
+#### Step 4: Enforcement point - Agent
+
+We do not have any agent enforcing our protections and providing access (reverse proxy) to our application.
+We choose *New Profile* and *VM* on *Azure*.
+
+More details come later. Authentication token of our new agent profile will be most significant information provided later.
+
+![](2022-11-20-17-45-27.png)
+
+#### Step 5: Certificates
+
+Certificates come later - once we switch front-end (access) URLs to HTTPS. Clouds provide services to handle certificates like *Azure Key Vault* or in small scale certificates may be placed on gateway filesystem (/etc/certs folder). Lets keep this for later.
+
+![](2022-11-20-17-48-19.png)
+
+
+#### Step 6: Summary
+
+We have defined all necessary inputs. Clicking DONE button will publish policy and make it ready for enforcement.
+
+However there is no enforcement (agent) running yet. We will proceed with Agent installation in form-factor of GaiaOS based gateway running as Azure Virtual Machine.
+
+![](2022-11-20-17-50-57.png)
+
+
+#### Step 7: Agent Profile
+
+We have moved to AppSec Gateways deployment agent profile. Notice *Environment* has *Azure* pre-selected for you and 3rd column of screen contains detailed installation instructions in Azure Portal.
+
+Most significant information are:
+* Authentication / Token - you will copy it to Azure Portal in few minutes
+* CloudGuard AppSec on Azure [marketplace link](https://azuremarketplace.microsoft.com/en/marketplace/apps/checkpoint.checkpoint_waap?tab=Overview)
+
+![](2022-11-20-17-54-49.png)
+
+
+### Step 8: Azure Portal - AppSec single gateway deployment
+
+We continue in [Azure Portal](https://azuremarketplace.microsoft.com/en/marketplace/apps/checkpoint.checkpoint_waap?tab=Overview) to deploy our new CloudGuard AppSec Virtual Machine.
+
+You may also start from Azure Home / Create a resource / search "CloudGuard AppSec" to reach [single gateway deployment](https://portal.azure.com/#create/checkpoint.checkpoint_waapinfinity-gw) screen. 
+
+We choose Resource Group. Resource groups are used to organize assets in Azure and allow you to have multiple objects of same name in different groups or make bulk operations easy including delete of all resources in one group at once.
+
+Choose region close to you - e.g. *West Europe*
+
+VM Name: *azuregw*
+
+Allow access from: *0.0.0.0/0* allows AppSec gw access from all Internet. It is enforced by Azure security groups (firewall rules) applied to our VM during deployment.
+
+GaiaOS first user is always *admin*
+
+We highly recommend to *prefer SSH keys for VM terminal access*, because passwords are registered in deployment and might leak. SSH public keys are public by design, so providing them does not make any harm.
+
+You may copy your existing SSH key (public part).
+
+Copy Authentication Token (aka Infinity Next Agent Token) from your new agent profile in Infinity Portal.
+***Always hit Enforce*** in Infinity Portal to activate token before using for VM deployment on Azure.
+
+![](2022-11-20-18-11-10.png)
+
+
+### Step 9: Azure Portal - VM size and Public IP address
+
+Default *Standard DS2 v2* is optimal VM size for our lab.
+
+Also ask to *Assign public IP address to the gateway* - this is how our users reach reverse proxy publishing and protecting our applications.
+
+![](2022-11-20-18-14-10.png)
+
+
+### Step 10: Azure Portal - Network Settings
+
+We are fine with placing AppSec to new dedicated VNET (Virtual Network).
+
+Also default address ranges for subnets are fine in our case as we will access AppSec using Public IP address and do not need to prevent overlaps with other potential resources in our Azure or in other private networks.
+
+![](2022-11-20-18-15-30.png)
+
+
+### Step 11: Azure Portal - Review and create
+
+Lets review deployment and hit *CREATE* button to get it started.
+
+Deployment consists from Virtual Machine (which takes longest time to be created), but also many additional network and configuration components.
+
+Monitor deployment progress until all resources are successfully created.
+
+![](2022-11-20-18-20-06.png)
+
+Once deployment is done, you may navigate to list of [Virtual Machines](https://portal.azure.com/#view/HubsExtension/BrowseResource/resourceType/Microsoft.Compute%2FVirtualMachines) and find details of AppSec VM there.
+
+
+### Step 12: Azure Portal - AppSec Virtual Machine details
+
+Get familiar with all aspects of new AppSec VM.
+Most important with *Public IP address*
+
+![](2022-11-20-18-23-29.png)
+
+
+### Step 13: Access URLs resolution to AppSec VM public IP
+
+In case you are on Windows: Open PowerShell terminal window and ask for notepad to open with admin permission, so we create `hosts` file entry for our front-end (access) hostnames - pointing to IP address or our AppSec VM in Azure.
+
+Run in PowerShell
+```
+Start-Process -Verb runas notepad.exe -ArgumentList $env:WINDIR\system32\drivers\etc\hosts
+```
+
+Add following line to `hosts` file and save.
+Make sure to replace `13.69.55.75` with real public IP address of your AppSec GW.
+```
+13.69.55.75 sushi.appsec.klaud.online exploit.appsec.klaud.online
+```
+
+Running `ping sushi.appsec.klaud.online` in PowerShell should confirm host resolution to expected IP address:
+```
+PS C:\Users\mkoldov> ping sushi.appsec.klaud.online
+
+Pinging sushi.appsec.klaud.online [13.69.55.75] with 32 bytes of data:
+...
+```
+
+### Step 14: Infinity Portal - AppSec Web Application Asset review
+
+Be patient until AppSec VM is deployed and AppSec nano agent installation into it is finished.
+
+Once it is done, Agents section should confirm AppSec agent registration:
+![](2022-11-20-18-32-09.png)
+
+And enforced asset should be green in Asset section with Reverse Proxy details including backend server connectivity info:
+![](2022-11-20-18-36-20.png)
+
+Time to test access to your application from browser:
+[http://sushi.appsec.klaud.online/](http://sushi.appsec.klaud.online/)
+
+You may also try "fake" SQL Injection to see if incident is reported.
+[http://sushi.appsec.klaud.online/?q=UNION+1=1](http://sushi.appsec.klaud.online/?q=UNION+1=1)
+
+
+### Step 15: Upgrade to HTTPS
+
+Before we change our front-end URL to HTTPS protocol, AppSec needs valid certificate to be present.
+
+AppSec is obtaining certificates from:
+* specialized cloud services like *Azure Key Vault*
+* or from gateway filesystem (/etc/certs) which might be tricky for gateways in auto-scaling VMSS
+
+Certificates (download):
+* [cert-appsec-sushi.pf](https://github.com/mkol5222/appsec-training/blob/main/assets/training-only-certificates/cert-appsec-sushi.pfx?raw=true)
+* [cert-appsec-exploit.pfx](https://github.com/mkol5222/appsec-training/blob/main/assets/training-only-certificates/cert-appsec-exploit.pfx?raw=true)
+
+#### Step 15a: HTTPS with Azure Key Vault
+
+
+
+#### Step 15b: HTTPS with certificates in filesystem
+
+Connect to AppSec gateway using `ssh admin@sushi.appsec.klaud.online`
+
+We assume that you have provided your default public SSH key from home folder's .ssh subfolder when creating VM.
+Or SSH using other private SSH key with `ssh -i path-to-your-other-private-ssh-key admin@sushi.appsec.klaud.online`
+
+Continue on AppSec gateway command-line. 
+We will grab certificates from server using CURL
+```
+curl -k -L -o cert-appsec-sushi.pfx https://github.com/mkol5222/appsec-training/blob/main/assets/training-only-certificates/cert-appsec-sushi.pfx?raw=true
+```
+
+Now we got `cert-appsec-sushi.pfx` in current working directory.
+
+However AppSec is expecting KEY file with server's key and PEM file with certificate. This is where `openssl` will help.
+
+```
+for C in $(ls *pfx); do echo $C; B="${C%.*}"; openssl pkcs12 -in "$B.pfx" -out "$B.key" -nocerts -nodes -passin pass:""; openssl pkcs12 -passin pass:"" -in "$B.pfx" -out "$B.pem" -nokeys -clcerts; echo ; ls "$B"*; done
+```
+
+Lets copy to `/etc/certs`
+```
+cp cert-appsec-sushi.{pem,key} /etc/certs/;
+ls /etc/certs/
+```
+
+#### Step 16: Enabling HTTPS on web application asset
+
+Once certificates are in place, it is possible to switch Web Application Asset to use HTTPS:
+
+Edit front-end access URL and upgrade it from HTTP to HTTPS:
+![](2022-11-20-19-06-50.png)
+
+You may visit asset's Reverse Proxy / Advanced... dialog to enable redirect from HTTP to HTTPS:
+![](2022-11-20-19-07-56.png)
+
+Publish and **ENFORCE** new policy.
+
+Retry once agent has received policy and reconfigured reverse proxy for HTTPS:
+[https://sushi.appsec.klaud.online/](https://sushi.appsec.klaud.online/)
+
+Notice Asset is now listing acquired certificates:
+![](2022-11-20-19-12-34.png)
 
 ## Summary
