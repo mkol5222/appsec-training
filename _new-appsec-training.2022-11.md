@@ -24,7 +24,7 @@ These URLs will be implemented on your machine using modification of hosts file 
 You will be also provided with valid certificates for these hostnames issued using Let's Encrypt CA.
 
 Certificates (download and save for later):
-* [cert-appsec-sushi.pf](https://github.com/mkol5222/appsec-training/blob/main/assets/training-only-certificates/cert-appsec-sushi.pfx?raw=true)
+* [cert-appsec-sushi.pfx](https://github.com/mkol5222/appsec-training/blob/main/assets/training-only-certificates/cert-appsec-sushi.pfx?raw=true)
 * [cert-appsec-exploit.pfx](https://github.com/mkol5222/appsec-training/blob/main/assets/training-only-certificates/cert-appsec-exploit.pfx?raw=true)
 
 ## Prerequisites
@@ -241,11 +241,68 @@ AppSec is obtaining certificates from:
 * or from gateway filesystem (/etc/certs) which might be tricky for gateways in auto-scaling VMSS
 
 Certificates (download):
-* [cert-appsec-sushi.pf](https://github.com/mkol5222/appsec-training/blob/main/assets/training-only-certificates/cert-appsec-sushi.pfx?raw=true)
+* [cert-appsec-sushi.pfx](https://github.com/mkol5222/appsec-training/blob/main/assets/training-only-certificates/cert-appsec-sushi.pfx?raw=true)
 * [cert-appsec-exploit.pfx](https://github.com/mkol5222/appsec-training/blob/main/assets/training-only-certificates/cert-appsec-exploit.pfx?raw=true)
 
 #### Step 15a: HTTPS with Azure Key Vault
 
+##### Enable AppSec VM Identity
+
+Find your AppSec VM under [Virtual Machines](https://portal.azure.com/#view/HubsExtension/BrowseResource/resourceType/Microsoft.Compute%2FVirtualMachines)
+and visit **Identity** section in *Settings* group.
+
+Enable System assigned identity by choosing Status = On and *SAVE*.
+![](2022-11-20-20-01-38.png)
+
+Copy and note **Object (principal) ID** for further use when assigning access policy to Key Vault to this identity.
+
+
+##### Create Azure Key Vault for certificates
+
+Under [Key Vaults](https://portal.azure.com/#view/HubsExtension/BrowseResource/resourceType/Microsoft.KeyVault%2Fvaults) use *CREATE* to add new Azure Key Vault.
+![](2022-11-20-20-04-55.png)
+
+Choose unique name for your Key Vault. e.g. *kv-appsec-certs-mk2011* and take note.
+
+![](2022-11-20-20-06-41.png)
+
+
+##### Create Key Vault Access Policy for AppSec VM
+
+Under your [Key Vault](https://portal.azure.com/#view/HubsExtension/BrowseResource/resourceType/Microsoft.KeyVault%2Fvaults) select **Access Policies** and CREATE new one for AppSec VM:
+![](2022-11-20-20-23-05.png)
+
+Choose Get and List for Secrets and Certificates. Click Next.
+![](2022-11-20-20-27-13.png)
+
+Add VM by name or Principal ID. Choose it. Click Next.
+![](2022-11-20-20-28-01.png)
+
+Click Next and **CREATE** new access policy.
+
+Your VM has permissions to access certificates now. Lets import our certificates from .PFX files.
+
+
+##### Import certificates
+
+Under your [Key Vault](https://portal.azure.com/#view/HubsExtension/BrowseResource/resourceType/Microsoft.KeyVault%2Fvaults) select **Certificates** and **Generate/Import**
+
+![](2022-11-20-20-33-39.png)
+
+Our certificate files (download):
+* [cert-appsec-sushi.pfx](https://github.com/mkol5222/appsec-training/blob/main/assets/training-only-certificates/cert-appsec-sushi.pfx?raw=true)
+* [cert-appsec-exploit.pfx](https://github.com/mkol5222/appsec-training/blob/main/assets/training-only-certificates/cert-appsec-exploit.pfx?raw=true)
+
+Repeat for cert-appsec-exploit.pfx.
+
+
+##### Tell AppSec VM which Key Vault to use
+
+AppSec VM is using tag `vault` with name of Azure Key Vault to choose source of certificates. Visit your [AppSec VM](https://portal.azure.com/#view/HubsExtension/BrowseResource/resourceType/Microsoft.Compute%2FVirtualMachines) and add new tag `vault` with name of your Key Vault created previously - e.g. `kv-appsec-certs-mk2011`
+
+![](2022-11-20-20-37-50.png)
+
+Progress to *Enabling HTTPS on web application asset* below.
 
 
 #### Step 15b: HTTPS with certificates in filesystem
