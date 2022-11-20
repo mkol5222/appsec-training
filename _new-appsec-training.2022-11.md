@@ -275,6 +275,23 @@ cp cert-appsec-sushi.{pem,key} /etc/certs/;
 ls /etc/certs/
 ```
 
+This is how to inspect the certificate:
+```
+openssl x509 -in /etc/certs/cert-appsec-sushi.pem  -noout -text
+```
+
+So you know who issued certificate, validity period and DNS name in SAN:
+```
+Issuer: C = US, O = Let's Encrypt, CN = R3
+
+        Validity
+            Not Before: Nov 18 11:33:41 2022 GMT
+            Not After : Feb 16 11:33:40 2023 GMT
+
+        Subject: CN = sushi.appsec.klaud.online
+                DNS:sushi.appsec.klaud.online
+```
+
 #### Step 16: Enabling HTTPS on web application asset
 
 Once certificates are in place, it is possible to switch Web Application Asset to use HTTPS:
@@ -292,5 +309,62 @@ Retry once agent has received policy and reconfigured reverse proxy for HTTPS:
 
 Notice Asset is now listing acquired certificates:
 ![](2022-11-20-19-12-34.png)
+
+## DSVW
+
+Practice by publishing [http://dsvw.klaud.online:1234/](http://dsvw.klaud.online:1234/) behind your existing AppSec Gateway as [http://exploit.appsec.klaud.online/](http://exploit.appsec.klaud.online/)
+
+![](2022-11-20-19-21-39.png)
+
+Choose existing Profile for Asset enforcement:
+![](2022-11-20-19-22-30.png)
+
+Test and add HTTPS as second step.
+![](2022-11-20-19-30-22.png)
+
+Remember to introduce certificates via Azure Key Vault or in VM filesystem before upgrading asset to HTTPS access.
+
+![](2022-11-20-19-32-09.png)
+
+
+## Logging
+
+Only incidents are logged by default.
+
+Logging is controlled by **TRIGGERS**
+You may define more detailed logging with more information, logging of legitimate traffice and also forward your logs to SIEM via syslog agents of your SIEM tool.
+
+![](2022-11-20-19-33-20.png)
+
+Trigger has to be changed on Asset level in Threat Prevention tab:
+![](2022-11-20-19-35-42.png)
+
+Threat Prevention view provides top level summary of policies assigned to assets including log level:
+![](2022-11-20-19-36-47.png)
+
+## Exception
+
+First lets create "fake" SQL Injection incident to be logged by visiting [https://sushi.appsec.klaud.online/?demo=UNION+1=1](https://sushi.appsec.klaud.online/?demo=UNION+1=1)
+
+Visit Infinity Portal / Horizon Policy / Monitor to review incident logs under [Important Events](https://portal.checkpoint.com/dashboard/policy#/operation/high-and-critical/)
+
+Find relevant incident and double-click for detailed view:
+![](2022-11-20-19-40-32.png)
+
+Right click of specific incident log line allows to start Exception editor
+![](2022-11-20-19-41-07.png)
+
+Delete source IP address condition and define Exception as
+![](2022-11-20-19-42-15.png)
+
+**ENFORCE** policy and wait for agent to fetch new policy version. You may check Agents menu for policy version number.
+
+Retry incident link:
+[https://sushi.appsec.klaud.online/?demo=UNION+1=1](https://sushi.appsec.klaud.online/?demo=UNION+1=1)
+
+Access is now allowed, because there is Exclusion for parameter named demo. Edit URL end retry for not excluded URL parameter name:
+[https://sushi.appsec.klaud.online/?q=UNION+1=1](https://sushi.appsec.klaud.online/?q=UNION+1=1)
+
+Access is blocked and incident visible in management logs under Monitor.
 
 ## Summary
