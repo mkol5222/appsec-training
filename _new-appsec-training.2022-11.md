@@ -50,7 +50,7 @@ CloudGuard AppSec is deployed as Virtual Machine into Azure public cloud. You ma
 
 ### Getting started
 
-CloudGuard AppSec protected applications are called **ASSETS**. Assets map front-end URLs (how your users access application from browser) to backed server (real location of your app) and associate it with security policy, logging and additional settings.
+CloudGuard AppSec protected applications are called **ASSETS**. Assets map front-end URLs (how your users access application from browser) to backend server (real location of your app) and associate it with security policy, logging and additional settings.
 
 Assets are enforced by **AGENTS** deployed in various deployment options (e.g. GaiaOS VM, Kubernetes Ingress, NGINX integration on Linux OS). Agents are installed according to **PROFILE**. Profile is also where we get authentication token to install agent and register it under our management tenant. Authentication token is sensitive credential, so handle it as such.
 
@@ -86,7 +86,7 @@ Notice that screen highlights both AI-based engine and parallel Check Point IPS 
 You may specify indicators that are unlikely to be malicious to improve Learning Engine verdicts.
 Source IP address is determined from TCP connection source or from X-Forwarded-For header behind load-balancer or other proxy.
 
-We choose *Source IP address* as there us direct access to Azure VM public IP address and AppSec will learn real source IP from TCP connection.
+We choose *Source IP address* as there is direct access to Azure VM public IP address and AppSec will learn real source IP from TCP connection.
 
 ![](2022-11-20-17-42-09.png)
 
@@ -194,7 +194,7 @@ Most important with *Public IP address*
 
 ### Step 13: Access URLs resolution to AppSec VM public IP
 
-In case you are on Windows: Open PowerShell terminal window and ask for notepad to open with admin permission, so we create `hosts` file entry for our front-end (access) hostnames - pointing to IP address or our AppSec VM in Azure.
+In case you are on Windows: Open PowerShell terminal window and ask for notepad to open with admin permission, so we create `hosts` file entry for our front-end (access) hostnames - pointing to IP address of our AppSec VM in Azure.
 
 Run in PowerShell
 ```
@@ -369,7 +369,7 @@ Notice Asset is now listing acquired certificates:
 
 ## DSVW
 
-Practice by publishing [http://dsvw.klaud.online:1234/](http://dsvw.klaud.online:1234/) behind your existing AppSec Gateway as [http://exploit.appsec.klaud.online/](http://exploit.appsec.klaud.online/)
+Practice by publishing [http://dsvw.klaud.online:1234](http://dsvw.klaud.online:1234) behind your existing AppSec Gateway as [http://exploit.appsec.klaud.online](http://exploit.appsec.klaud.online)
 
 ![](2022-11-20-19-21-39.png)
 
